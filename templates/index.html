@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMR Scanner - Toplu Optik Form Okuyucu</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">&#8857;</div>
+  <div><h1>OMR Scanner</h1><p>Toplu Optik Form Okuyucu</p></div>
+  <div class="steps" id="stepsBar">
+    <span class="step active" id="s1">1. Ayarlar</span>
+    <span class="step" id="s2">2. Cevap Anahtari</span>
+    <span class="step" id="s3">3. Kagitlar</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <!-- STEP 1: AYARLAR -->
+  <div id="step1">
+    <h2 class="sh">Form Ayarlari</h2>
+    <div class="row3">
+      <div class="card"><label>Soru Sayisi</label><input type="number" id="numQ" value="100" min="1" max="300"/></div>
+      <div class="card"><label>Sik Sayisi</label><select id="numC"><option value="4">4 (A-B-C-D)</option><option value="5" selected>5 (A-B-C-D-E)</option></select></div>
+      <div class="card"><label>Sutun Basina Satir</label><input type="number" id="rowsPerCol" value="30" min="1" max="60"/></div>
+    </div>
+    <button class="btn-primary" onclick="goStep(2)">Devam &#8594;</button>
+  </div>
+
+  <!-- STEP 2: CEVAP ANAHTARI -->
+  <div id="step2" class="hidden">
+    <h2 class="sh">Cevap Anahtari</h2>
+    <p class="desc">Cevap anahtarini elle girin veya optik formdan okutun.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('manual')">Elle Gir</button>
+      <button class="tab" onclick="switchTab('scan')">Formdan Oku</button>
+    </div>
+
+    <div id="tabManual">
+      <div class="card">
+        <label>Cevaplari virgul ile girin</label>
+        <textarea id="manualKey" rows="4" placeholder="A,B,C,D,E,A,B,C,D,E,..."></textarea>
+        <p class="hint" id="keyCount">0 cevap girildi</p>
+      </div>
+    </div>
+
+    <div id="tabScan" class="hidden">
+      <div class="upload-zone" id="keyUpload" onclick="document.getElementById('keyFile').click()">
+        <div class="uz-icon">&#128273;</div>
+        <p class="uz-text">Cevap anahtari formunu yukleyin</p>
+        <p class="uz-sub">Isaretlenmis optik form goruntusu</p>
+      </div>
+      <input type="file" id="keyFile" accept="image/*" style="display:none"/>
+      <div id="keyStatus" class="hidden"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(1)">&#8592; Geri</button>
+      <button class="btn-primary" onclick="goStep(3)" id="btnToStep3">Devam &#8594;</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: TOPLU YUKLEME -->
+  <div id="step3" class="hidden">
+    <h2 class="sh">Ogrenci Kagitlarini Yukleyin</h2>
+    <p class="desc" id="keyInfo"></p>
+
+    <div class="upload-zone multi" id="batchUpload" onclick="document.getElementById('batchFiles').click()">
+      <div class="uz-icon">&#128218;</div>
+      <p class="uz-text">Tum ogrenci kagitlarini secin veya surukleyin</p>
+      <p class="uz-sub">Birden fazla dosya secebilirsiniz</p>
+    </div>
+    <input type="file" id="batchFiles" accept="image/*" multiple style="display:none"/>
+
+    <div id="fileList" class="hidden"></div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(2)">&#8592; Geri</button>
+      <button class="btn-primary" onclick="startBatch()" id="btnBatch" class="hidden">&#8857; Toplu Analiz Baslat</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsSection" class="hidden">
+    <div class="btn-row" style="margin-bottom:16px">
+      <button class="btn-secondary" onclick="resetAll()">&#8635; Yeni Tarama</button>
+      <button class="btn-sm" onclick="xJSON()">{ } JSON</button>
+      <button class="btn-sm green" onclick="xXLS()">&#128202; Excel Rapor</button>
+    </div>
+    <div id="statsArea"></div>
+    <div id="resultsTable"></div>
+  </div>
+
+  <div class="err hidden" id="errBox"><p id="errTxt"></p></div>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
