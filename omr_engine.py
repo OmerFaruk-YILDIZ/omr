@@ -1,5 +1,5 @@
 """
-omr_engine.py - OpenCV OMR motoru
+omr_engine.py - OpenCV OMR motoru (Gelişmiş Izgara & Dinamik Kontrast Destekli)
 """
 import cv2
 import numpy as np
@@ -20,6 +20,34 @@ def cluster_values(values, tolerance):
             current = [v]
     groups.append(int(np.mean(current)))
     return groups
+
+
+def create_mathematical_grid(values, expected_count=None):
+    """
+    Eksik algılanan yuvarlaklar olsa bile, ilk ve son yuvarlağa bakarak
+    kusursuz bir matematiksel satır/sütun ızgarası oluşturur.
+    """
+    if len(values) < 2: return values
+    
+    # Uçlardaki hatalı tespitleri (yazı vb.) filtrele
+    q1 = np.percentile(values, 10)
+    q3 = np.percentile(values, 90)
+    core_vals = [v for v in values if q1 - 20 <= v <= q3 + 20]
+    if len(core_vals) < 2: core_vals = values
+    
+    start, end = core_vals[0], core_vals[-1]
+    
+    if expected_count:
+        step = (end - start) / max(1, expected_count - 1)
+        return [start + i * step for i in range(expected_count)]
+        
+    gaps = [core_vals[i+1] - core_vals[i] for i in range(len(core_vals)-1)]
+    median_gap = np.median(gaps)
+    if median_gap < 5: return core_vals
+    
+    count = int(round((end - start) / median_gap)) + 1
+    step = (end - start) / max(1, count - 1)
+    return [start + i * step for i in range(count)]
 
 
 def find_question_groups(x_columns, num_choices):
@@ -62,58 +90,95 @@ def find_answer_region(image):
 
 def read_name(circles, gray, x_min, x_max, y_min, y_max):
     region = circles[(circles[:,0]>=x_min)&(circles[:,0]<=x_max)&(circles[:,1]>=y_min)&(circles[:,1]<=y_max)]
-    if len(region) < 20:
-        return ""
-    x_cols = cluster_values(region[:,0].tolist(), 7)
-    y_rows = cluster_values(region[:,1].tolist(), 7)
-    if len(y_rows) < 10:
-        return ""
+    if len(region) < 20: return ""
+    
+    raw_x = cluster_values(region[:,0].tolist(), 12)
+    raw_y = cluster_values(region[:,1].tolist(), 10)
+    
+    if len(raw_x) < 2 or len(raw_y) < 15: return ""
+    
+    y_grid = create_mathematical_grid(raw_y)
+    radius = int(np.median(region[:,2])) if len(region) > 0 else 8
+    
     name = ""
-    for cx_t in x_cols:
-        best_row, best_val = -1, 999
-        for (cx, cy, r) in region:
-            if abs(cx - cx_t) > 10:
-                continue
-            ri = int(np.argmin([abs(cy - yr) for yr in y_rows]))
+    for cx in raw_x:
+        vals = []
+        for cy in y_grid:
             mask = np.zeros(gray.shape, dtype=np.uint8)
-            cv2.circle(mask, (cx, cy), r, 255, -1)
+            cv2.circle(mask, (int(cx), int(cy)), max(2, radius-2), 255, -1)
             val = cv2.mean(gray, mask=mask)[0]
-            if val < 190 and val < best_val:
-                best_val = val
-                best_row = ri
-        if 0 <= best_row < len(cfg.TURKISH_ALPHA):
-            name += cfg.TURKISH_ALPHA[best_row]
+            vals.append((val, cy))
+            
+        vals.sort(key=lambda x: x[0])
+        darkest_val, darkest_cy = vals[0]
+        
+        # Dinamik Kontrast Tespiti
+        is_marked = False
+        if len(vals) > 2:
+            median_empty = np.median([v[0] for v in vals[1:]])
+            if (median_empty - darkest_val) > 25 or darkest_val < 140:
+                is_marked = True
+        elif darkest_val < 160:
+            is_marked = True
+            
+        if is_marked:
+            row_idx = int(np.argmin([abs(darkest_cy - yr) for yr in y_grid]))
+            
+            # Formun ilk yuvarlağı genelde 'A' harfidir. cfg.TURKISH_ALPHA'da boşluk varsa onu atla
+            offset = 0
+            if " " in cfg.TURKISH_ALPHA and len(cfg.TURKISH_ALPHA) > len(y_grid):
+                offset = 1
+                
+            target_idx = row_idx + offset
+            if 0 <= target_idx < len(cfg.TURKISH_ALPHA):
+                name += cfg.TURKISH_ALPHA[target_idx]
+            else:
+                name += " "
+        else:
+            name += " "
+            
     return name.strip()
 
 
 def read_student_number(circles, gray, x_min, x_max, y_min, y_max):
     region = circles[(circles[:,0]>=x_min)&(circles[:,0]<=x_max)&(circles[:,1]>=y_min)&(circles[:,1]<=y_max)]
-    if len(region) < 10:
-        return ""
-    x_cols = cluster_values(region[:,0].tolist(), 7)
-    y_rows = cluster_values(region[:,1].tolist(), 7)
-    if len(y_rows) < 10:
-        return ""
-    offset = max(0, len(y_rows) - 10)
-    digit_rows = y_rows[offset:offset+10]
+    if len(region) < 10: return ""
+    
+    raw_x = cluster_values(region[:,0].tolist(), 12)
+    raw_y = cluster_values(region[:,1].tolist(), 10)
+    
+    if len(raw_y) < 5: return ""
+    
+    # Sayılar bloğunda her zaman 0-9 arası tam 10 satır vardır. Yukarıdaki yazıları ekarte et
+    raw_y = raw_y[-10:] if len(raw_y) > 10 else raw_y
+    y_grid = create_mathematical_grid(raw_y, 10)
+    radius = int(np.median(region[:,2])) if len(region) > 0 else 8
+    
     number = ""
-    for cx_t in x_cols:
-        best_d, best_v = -1, 999
-        for (cx, cy, r) in region:
-            if abs(cx - cx_t) > 10:
-                continue
-            dists = [abs(cy - yr) for yr in digit_rows]
-            di = int(np.argmin(dists))
-            if min(dists) > 20:
-                continue
+    for cx in raw_x:
+        vals = []
+        for cy in y_grid:
             mask = np.zeros(gray.shape, dtype=np.uint8)
-            cv2.circle(mask, (cx, cy), r, 255, -1)
+            cv2.circle(mask, (int(cx), int(cy)), max(2, radius-2), 255, -1)
             val = cv2.mean(gray, mask=mask)[0]
-            if val < 180 and val < best_v:
-                best_v = val
-                best_d = di
-        if best_d >= 0:
+            vals.append((val, cy))
+            
+        vals.sort(key=lambda x: x[0])
+        darkest_val, darkest_cy = vals[0]
+        
+        # Dinamik Kontrast Tespiti
+        is_marked = False
+        if len(vals) > 2:
+            median_empty = np.median([v[0] for v in vals[1:]])
+            if (median_empty - darkest_val) > 25 or darkest_val < 140:
+                is_marked = True
+        elif darkest_val < 160:
+            is_marked = True
+            
+        if is_marked:
+            best_d = int(np.argmin([abs(darkest_cy - yr) for yr in y_grid]))
             number += str(best_d)
+            
     return number
 
 
@@ -123,12 +188,16 @@ def read_student_info(image, bar_y):
     h, w = image.shape[:2]
     upper = image[:bar_y]
     gu = cv2.cvtColor(upper, cv2.COLOR_BGR2GRAY)
-    c = cv2.HoughCircles(gu, cv2.HOUGH_GRADIENT, 1, 10, param1=50, param2=18, minRadius=4, maxRadius=13)
+    
+    # Zayıf basılmış formlardaki halkaları da yakalayabilmek için parametreler esnetildi
+    c = cv2.HoughCircles(gu, cv2.HOUGH_GRADIENT, 1, 10, param1=45, param2=16, minRadius=4, maxRadius=15)
     if c is None:
         return {"name": "", "number": ""}
+        
     c = np.round(c[0]).astype(int)
     mx = int(w * 0.4)
     my = int(bar_y * 0.45)
+    
     return {
         "name": read_name(c, gu, mx, w, 0, bar_y),
         "number": read_student_number(c, gu, 0, mx, my, bar_y),
@@ -141,18 +210,22 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
         minRadius=cfg.HOUGH_MIN_RADIUS, maxRadius=cfg.HOUGH_MAX_RADIUS)
     if circles is None:
         return [], "Daire bulunamadi"
+        
     circles = np.round(circles[0]).astype(int)
     ah, aw = gray.shape[:2]
     x_pos = cluster_values(circles[:,0].tolist(), cfg.X_CLUSTER_TOLERANCE)
     y_pos = cluster_values(circles[:,1].tolist(), cfg.Y_CLUSTER_TOLERANCE)
     qgroups = find_question_groups(x_pos, num_choices)
+    
     if not qgroups:
         return [], "Soru gruplari bulunamadi"
+        
     bounds = []
     for i, g in enumerate(qgroups):
         lo = 0 if i == 0 else (qgroups[i-1][-1] + g[0]) // 2
         hi = aw if i == len(qgroups)-1 else (g[-1] + qgroups[i+1][0]) // 2
         bounds.append((lo, hi, g))
+        
     grid = {}
     for (cx, cy, r) in circles:
         gi, gc = -1, None
@@ -162,17 +235,21 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
                 break
         if gi < 0 or gc is None:
             continue
+            
         ci = int(np.argmin([abs(cx - c) for c in gc]))
         if ci >= num_choices:
             continue
+            
         ri = int(np.argmin([abs(cy - yr) for yr in y_pos]))
         mask = np.zeros(gray.shape, dtype=np.uint8)
-        cv2.circle(mask, (cx, cy), r, 255, -1)
+        cv2.circle(mask, (cx, cy), max(2, int(r-2)), 255, -1)
         val = cv2.mean(gray, mask=mask)[0]
+        
         key = (gi, ri)
         if key not in grid:
             grid[key] = []
         grid[key].append((ci, val))
+        
     answers = []
     for gi in range(len(qgroups)):
         mr = min(rows_per_col, num_questions - gi * rows_per_col)
@@ -186,8 +263,10 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
             if key not in grid:
                 answers.append({"question": qn, "answer": "BLANK"})
                 continue
+                
             marked = [cfg.CHOICE_LABELS[ci] for ci, val in sorted(grid[key]) if val < cfg.FILL_THRESHOLD and ci < len(cfg.CHOICE_LABELS)]
             answers.append({"question": qn, "answer": ",".join(marked) if marked else "BLANK"})
+            
     return answers, None
 
 
@@ -218,6 +297,7 @@ def process_single(image_bytes, num_questions=None, num_choices=None, rows_per_c
 
     blank = sum(1 for a in answers if a["answer"] == "BLANK")
     filled = len(answers) - blank
+    
     return {
         "total_questions": len(answers),
         "answers": answers,
@@ -242,6 +322,7 @@ def compare_answers(results, answer_key):
         else:
             wrong += 1; status = "wrong"
         details.append({"question": ans["question"], "given": given, "expected": expected, "status": status})
+        
     total = len(answers)
     score = round((correct / total) * 100, 1) if total > 0 else 0
     return {"correct": correct, "wrong": wrong, "blank": blank, "total": total, "score": score, "details": details}
