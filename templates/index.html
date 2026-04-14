@@ -4,35 +4,92 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OMR Scanner - Toplu Optik Form Okuyucu</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
+
 </head>
 <body>
+
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
 <div class="hdr">
-  <div class="logo">&#8857;</div>
-  <div><h1>OMR Scanner</h1><p>Toplu Optik Form Okuyucu</p></div>
-  <div class="steps" id="stepsBar">
-    <span class="step active" id="s1">1. Ayarlar</span>
-    <span class="step" id="s2">2. Cevap Anahtari</span>
-    <span class="step" id="s3">3. Kagitlar</span>
+  <div class="logo">
+    <span class="logo-icon">📊</span>
+  </div>
+  <div class="hdr-title">
+    <h1>OMR Scanner</h1>
+    <p>Akıllı Optik Form Okuyucu</p>
+  </div>
+
+  <div class="steps">
+    <div class="step-container">
+      <span class="step active" id="s1">
+        <span class="step-num">1</span> Ayarlar
+      </span>
+      <span class="step-line"></span>
+      <span class="step" id="s2">
+        <span class="step-num">2</span> Anahtar
+      </span>
+      <span class="step-line"></span>
+      <span class="step" id="s3">
+        <span class="step-num">3</span> Kâğıtlar
+      </span>
+    </div>
   </div>
 </div>
+
 <div class="wrap">
 
-  <!-- STEP 1: AYARLAR -->
-  <div id="step1">
-    <h2 class="sh">Form Ayarlari</h2>
-    <div class="row3">
-      <div class="card"><label>Soru Sayisi</label><input type="number" id="numQ" value="100" min="1" max="300"/></div>
-      <div class="card"><label>Sik Sayisi</label><select id="numC"><option value="4">4 (A-B-C-D)</option><option value="5" selected>5 (A-B-C-D-E)</option></select></div>
-      <div class="card"><label>Sutun Basina Satir</label><input type="number" id="rowsPerCol" value="30" min="1" max="60"/></div>
+  <div class="badge-container">
+    <div class="ai-badge">
+      <span class="pulse-dot"></span> ⚡ Yapay Zeka Destekli Analiz Motoru
     </div>
-    <button class="btn-primary" onclick="goStep(2)">Devam &#8594;</button>
   </div>
 
-  <!-- STEP 2: CEVAP ANAHTARI -->
-  <div id="step2" class="hidden">
-    <h2 class="sh">Cevap Anahtari</h2>
-    <p class="desc">Cevap anahtarini elle girin veya optik formdan okutun.</p>
+  <div id="step1" class="glass-panel">
+    <div class="step-header">
+      <h2 class="sh">🛠️ Form Ayarları</h2>
+      <p class="sh-sub">Optik formun yapısal özelliklerini belirleyin.</p>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <label>Soru Sayısı</label>
+        <div class="input-wrapper">
+          <input type="number" id="numQ" value="100">
+        </div>
+      </div>
+
+      <div class="card">
+        <label>Şık Sayısı</label>
+        <div class="input-wrapper">
+          <select id="numC">
+            <option value="4">4 Şık (A-D)</option>
+            <option value="5" selected>5 Şık (A-E)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>Sütun Uzunluğu</label>
+        <div class="input-wrapper">
+          <input type="number" id="rowsPerCol" value="30">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-right">
+      <button class="btn-primary glow-btn" onclick="goStep(2)">Cevap Anahtarına Geç <span>→</span></button>
+    </div>
+  </div>
+
+  <div id="step2" class="hidden glass-panel">
+    <div class="step-header">
+      <h2 class="sh">🔑 Cevap Anahtarı</h2>
+      <p class="sh-sub" id="keyInfo">Değerlendirme için referans anahtarı belirleyin.</p>
+    </div>
 
     <div class="tabs">
       <button class="tab active" onclick="switchTab('manual')">Elle Gir</button>
@@ -40,62 +97,80 @@
     </div>
 
     <div id="tabManual">
-      <div class="card">
-        <label>Cevaplari virgul ile girin</label>
-        <textarea id="manualKey" rows="4" placeholder="A,B,C,D,E,A,B,C,D,E,..."></textarea>
-        <p class="hint" id="keyCount">0 cevap girildi</p>
+      <div class="card no-hover">
+        <label style="margin-bottom: 10px; display:block; color:var(--text-muted);">Örn: A, B, C, D, E</label>
+        <textarea id="manualKey" placeholder="Cevapları virgülle ayırarak giriniz..."></textarea>
+        <div id="keyCount" class="info-text" style="margin-top:10px; color:var(--primary); font-size:13px; font-weight:600;">0 cevap girildi</div>
       </div>
     </div>
 
     <div id="tabScan" class="hidden">
-      <div class="upload-zone" id="keyUpload" onclick="document.getElementById('keyFile').click()">
-        <div class="uz-icon">&#128273;</div>
-        <p class="uz-text">Cevap anahtari formunu yukleyin</p>
-        <p class="uz-sub">Isaretlenmis optik form goruntusu</p>
+      <div class="upload-zone" id="keyUpload" onclick="keyFile.click()">
+        <div class="laser"></div>
+        <div class="uz-icon">📸</div>
+        <p class="uz-text">Cevap anahtarı formunu buraya sürükleyin</p>
+        <p class="uz-sub">veya seçmek için tıklayın</p>
       </div>
-      <input type="file" id="keyFile" accept="image/*" style="display:none"/>
-      <div id="keyStatus" class="hidden"></div>
+      <input type="file" id="keyFile" hidden>
+      <div id="keyStatus" class="hidden status-box" style="margin-top: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;"></div>
     </div>
 
     <div class="btn-row">
-      <button class="btn-secondary" onclick="goStep(1)">&#8592; Geri</button>
-      <button class="btn-primary" onclick="goStep(3)" id="btnToStep3">Devam &#8594;</button>
+      <button class="btn-secondary" onclick="goStep(1)">← Geri</button>
+      <button class="btn-primary glow-btn" onclick="goStep(3)">Kağıt Yüklemeye Geç <span>→</span></button>
     </div>
   </div>
 
-  <!-- STEP 3: TOPLU YUKLEME -->
-  <div id="step3" class="hidden">
-    <h2 class="sh">Ogrenci Kagitlarini Yukleyin</h2>
-    <p class="desc" id="keyInfo"></p>
-
-    <div class="upload-zone multi" id="batchUpload" onclick="document.getElementById('batchFiles').click()">
-      <div class="uz-icon">&#128218;</div>
-      <p class="uz-text">Tum ogrenci kagitlarini secin veya surukleyin</p>
-      <p class="uz-sub">Birden fazla dosya secebilirsiniz</p>
+  <div id="step3" class="hidden glass-panel">
+    <div class="step-header">
+      <h2 class="sh">📂 Öğrenci Kâğıtları</h2>
+      <p class="sh-sub">Analiz edilecek tüm optik formları topluca yükleyin.</p>
     </div>
-    <input type="file" id="batchFiles" accept="image/*" multiple style="display:none"/>
 
-    <div id="fileList" class="hidden"></div>
+    <div class="upload-zone massive-zone" id="batchUpload" onclick="batchFiles.click()">
+      <div class="laser"></div>
+      <div class="uz-icon floating">📑</div>
+      <p class="uz-text">Tüm öğrenci kağıtlarını seçin veya sürükleyin</p>
+      <p class="uz-sub">Birden fazla dosya seçebilirsiniz</p>
+    </div>
 
-    <div class="btn-row">
-      <button class="btn-secondary" onclick="goStep(2)">&#8592; Geri</button>
-      <button class="btn-primary" onclick="startBatch()" id="btnBatch" class="hidden">&#8857; Toplu Analiz Baslat</button>
+    <input type="file" id="batchFiles" multiple hidden>
+
+    <div id="fileList" class="hidden" style="margin-top: 20px;"></div>
+
+    <div class="btn-center">
+      <button id="btnBatch" class="btn-primary btn-large glow-btn hidden" onclick="startBatch()">🚀 Toplu Analiz Başlat</button>
     </div>
   </div>
 
-  <!-- RESULTS -->
   <div id="resultsSection" class="hidden">
-    <div class="btn-row" style="margin-bottom:16px">
-      <button class="btn-secondary" onclick="resetAll()">&#8635; Yeni Tarama</button>
-      <button class="btn-sm" onclick="xJSON()">{ } JSON</button>
-      <button class="btn-sm green" onclick="xXLS()">&#128202; Excel Rapor</button>
+    <div class="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px;">
+      <h2 style="font-size: 24px; font-weight: 600;">📈 Analiz Sonuçları</h2>
+      <div class="export-btns" style="display: flex; gap: 10px;">
+         <button class="btn-warning glow-btn" onclick="resetAll()">🔄 Yeni Tarama</button>
+         <button class="btn-secondary btn-sm" onclick="xJSON()">JSON İndir</button>
+         <button class="btn-success btn-sm glow-btn" onclick="xXLS()">Excel Raporu (XLSX)</button>
+      </div>
     </div>
+    
     <div id="statsArea"></div>
-    <div id="resultsTable"></div>
+    
+    <div class="glass-panel" style="margin-top:20px; padding:0; overflow:hidden;">
+      <div id="resultsTable"></div>
+    </div>
   </div>
 
-  <div class="err hidden" id="errBox"><p id="errTxt"></p></div>
+  <div id="errBox" class="hidden error-toast" style="position: fixed; bottom: 20px; right: 20px; background: #7f1d1d; color: #fca5a5; padding: 15px 25px; border-radius: 10px; border: 1px solid #b91c1c; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 9999;">
+    <span id="errTxt"></span>
+    <button style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;" onclick="this.parentElement.classList.add('hidden')">×</button>
+  </div>
+
 </div>
+
+<div class="footer">
+  <p>✨ <span>Ömer Faruk Yıldız</span> tarafından geliştirildi 💻</p>
+</div>
+
 <script src="/static/app.js"></script>
 </body>
 </html>
