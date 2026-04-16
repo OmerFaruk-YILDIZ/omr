@@ -48,7 +48,7 @@
 <div class="wrap">
   <div class="badge-container">
     <div class="ai-badge">
-      <span class="pulse-dot"></span> ⚡ Yapay Zeka Destekli Analiz Motoru
+      <span class="pulse-dot"></span> ⚡ Yapay Zeka Destekli Analiz Motoru — JPG, PNG, PDF
     </div>
   </div>
 
@@ -73,9 +73,9 @@
         <div class="laser"></div>
         <div class="uz-icon">📸</div>
         <p class="uz-text">Cevap anahtarı formunu buraya sürükleyin</p>
-        <p class="uz-sub">veya seçmek için tıklayın</p>
+        <p class="uz-sub">JPG, PNG veya PDF — seçmek için tıklayın</p>
       </div>
-      <input type="file" id="keyFile" hidden>
+      <input type="file" id="keyFile" accept=".jpg,.jpeg,.png,.webp,.bmp,.pdf,image/*,application/pdf" hidden>
       <div id="keyStatus" class="hidden status-box" style="margin-top: 15px; background: rgba(0,240,255,0.05); padding: 15px; border-radius: 4px; border: 1px solid rgba(0,240,255,0.2);"></div>
     </div>
     <div class="btn-right">
@@ -86,15 +86,15 @@
   <div id="step2" class="hidden glass-panel">
     <div class="step-header">
       <h2 class="sh">📂 Öğrenci Kâğıtları</h2>
-      <p class="sh-sub">Analiz edilecek tüm optik formları topluca yükleyin.</p>
+      <p class="sh-sub">Tüm optik formları topluca yükleyin. <strong style="color:var(--primary)">Tek bir çok-sayfalı PDF = sınıfın tamamı</strong> olarak da kabul edilir.</p>
     </div>
     <div class="upload-zone massive-zone" id="batchUpload" onclick="document.getElementById('batchFiles').click()">
       <div class="laser"></div>
       <div class="uz-icon floating">📑</div>
       <p class="uz-text">Tüm öğrenci kağıtlarını seçin veya sürükleyin</p>
-      <p class="uz-sub">Birden fazla dosya seçebilirsiniz</p>
+      <p class="uz-sub">JPG, PNG veya PDF · Birden fazla dosya seçebilirsiniz</p>
     </div>
-    <input type="file" id="batchFiles" multiple hidden>
+    <input type="file" id="batchFiles" accept=".jpg,.jpeg,.png,.webp,.bmp,.pdf,image/*,application/pdf" multiple hidden>
     <div id="fileList" class="hidden" style="margin-top: 20px;"></div>
     <div class="btn-center">
       <button id="btnBatch" class="btn-primary btn-large glow-btn hidden" onclick="startBatch()">🚀 Toplu Analiz Başlat</button>
@@ -110,7 +110,7 @@
          <button class="btn-success btn-sm glow-btn" onclick="xXLS()">Excel</button>
       </div>
     </div>
-    
+
     <div id="statsArea"></div>
 
     <div class="dashboard-grid">
@@ -124,7 +124,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="glass-panel results-table-container" style="margin-top: 25px;">
       <div id="resultsTable"></div>
     </div>
@@ -157,21 +157,23 @@
 </div>
 
 <div id="welcomeModal" class="modal-overlay hidden" style="z-index: 9999; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
-  <div class="modal-content glass-panel" style="max-width: 500px; text-align: center; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);">
+  <div class="modal-content glass-panel" style="max-width: 520px; text-align: center; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);">
     <div class="sh" style="color: var(--primary); text-shadow: 0 0 10px var(--primary); margin-bottom: 15px;">
       <span style="font-size: 36px; display: inline-block; animation: float 3s ease-in-out infinite;">🚀</span><br>
       Sisteme Hoş Geldiniz!
     </div>
-    <p style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px; line-height: 1.7; margin-bottom: 25px;">
-      Gelişmiş OMR (Optik İşaret Tanıma) Okuyucusuna hoş geldiniz. <strong>Umarım sınavınız çok güzel geçmiştir!</strong> <br><br>
-      Formlarınızı saniyeler içinde okutmak, sınıfın genel durumunu detaylı analizlerle görmek ve sonuçları anında <span style="color: var(--success); font-weight: 600;">Excel veya JSON</span> olarak dışa aktarmak için sistem tamamen hazır.
+    <p style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px; line-height: 1.7; margin-bottom: 20px;">
+      Gelişmiş OMR (Optik İşaret Tanıma) Okuyucusuna hoş geldiniz. <strong>Umarım sınavınız çok güzel geçmiştir!</strong>
     </p>
-    <div style="margin-bottom: 25px;">
-      <div style="width: 40px; height: 1px; background: rgba(255,255,255,0.1); margin: 0 auto 10px auto;"></div>
-      <p style="color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;">Geliştirici</p>
-      <p style="color: var(--text-muted); font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.5px;">
-        Ömer Faruk Yıldız
-      </p>
+    <div style="text-align:left; background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 6px; padding: 15px; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px; color: var(--text-main);">
+      <div style="color:var(--primary); margin-bottom:8px; font-weight:700">✨ YENİ ÖZELLİKLER</div>
+      <ul style="list-style: none; padding-left: 0; line-height: 1.9;">
+        <li>📄 <strong>PDF desteği:</strong> Çok sayfalı PDF = tüm sınıf tek dosya</li>
+        <li>🎯 <strong>Overlay görüntü:</strong> Okunan işaretleri renkli daireyle gör</li>
+        <li>✏️ <strong>Manuel düzeltme:</strong> Yanlış okunanı tıklayıp düzelt</li>
+        <li>💾 <strong>Oturum korur:</strong> Sayfa yenilense de sonuçlar kaybolmaz</li>
+        <li>🔢 <strong>Otomatik soru sayısı:</strong> Formdan otomatik algılar</li>
+      </ul>
     </div>
     <button id="closeWelcomeBtn" class="btn-primary glow-btn" style="width: 100%; font-size: 15px; padding: 12px;">Sistemi Başlat ⚡</button>
   </div>
@@ -261,9 +263,9 @@
         <strong style="color: var(--primary); display: block; margin-bottom: 12px; font-size: 15px;">⚙️ Görüntü İşleme Motoru Nasıl Çalışır?</strong>
         <ul style="list-style-type: none; padding-left: 0; display: flex; flex-direction: column; gap: 12px;">
           <li><strong style="color: #fff;">1. Ön İşleme (Preprocessing):</strong> Form siyah-beyaz formata çevrilir ve gölgeler temizlenir.</li>
-          <li><strong style="color: #fff;">2. Köşe Tespiti (Perspective Transform):</strong> Form yamuk çekilmiş olsa bile köşeleri bulunup görsel düz bir dikdörtgen haline (Warp) sokulur.</li>
+          <li><strong style="color: #fff;">2. Otomatik Hizalama:</strong> Turuncu CEVAPLAR bandı tespit edilip form tam koordinatına oturtulur.</li>
           <li><strong style="color: #fff;">3. Hücre Çıkarımı:</strong> Şıkların (baloncukların) koordinatları matematiksel olarak bulunur.</li>
-          <li><strong style="color: #fff;">4. Piksel Yoğunluk (Thresholding):</strong> Baloncuğun içindeki siyah piksel yoğunluğu ölçülür ve eşiği geçenler "dolu" sayılır.</li>
+          <li><strong style="color: #fff;">4. İstatistiksel Tespit:</strong> Baloncukların parlaklık değeri Z-score ile karşılaştırılır; işaretli olan net ayırt edilir.</li>
           <li><strong style="color: #fff;">5. Puanlama:</strong> Çıkan sonuç Cevap Anahtarı ile karşılaştırılıp doğru/yanlış hesaplanır.</li>
         </ul>
       </div>
