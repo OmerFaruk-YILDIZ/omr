@@ -4,10 +4,10 @@
   --bg-dark: #030307;
   --glass-bg: rgba(6, 11, 25, 0.65);
   --glass-border: rgba(0, 240, 255, 0.25);
-  --primary: #00f0ff; 
+  --primary: #00f0ff;
   --primary-hover: #00bfff;
-  --secondary: #ff00ea; 
-  --success: #00ff9d; 
+  --secondary: #ff00ea;
+  --success: #00ff9d;
   --danger: #ff003c;
   --warning: #f59e0b;
   --text-main: #e0faff;
@@ -104,6 +104,7 @@ button { font-family: var(--font-mono); font-weight: 700; text-transform: upperc
 .btn-success { background: transparent; border: 1px solid var(--success); color: var(--success); padding: 10px 20px; border-radius: 4px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
 .btn-success:hover { background: var(--success); color: #fff; box-shadow: 0 0 20px var(--success); }
 .btn-warning { background: transparent; border: 1px solid var(--warning); color: var(--warning); padding: 10px 20px; border-radius: 4px; }
+.btn-warning:hover { background: var(--warning); color: #fff; box-shadow: 0 0 15px var(--warning); }
 .btn-sm { padding: 8px 16px; font-size: 12px; }
 .btn-large { padding: 16px 40px; font-size: 16px; }
 .btn-right { text-align: right; margin-top: 25px; }
@@ -135,8 +136,10 @@ button { font-family: var(--font-mono); font-weight: 700; text-transform: upperc
 .upload-zone:hover .laser, .upload-zone.dragover .laser { opacity: 1; animation: scanLaser 1.5s infinite linear; }
 @keyframes scanLaser { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
 
-.file-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+.file-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 15px; }
 .file-item { background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); padding: 10px 15px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-family: var(--font-mono); color: var(--primary);}
+.file-item .fn { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right: 8px; }
+.file-item .fs { color: var(--text-muted); font-size: 11px; margin-right: 8px; }
 .file-count { margin-top: 20px; font-size: 14px; color: var(--secondary); font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px;}
 .progress-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden; margin-top: 10px; position: relative;}
 .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; box-shadow: 0 0 15px var(--primary);}
@@ -160,11 +163,52 @@ tbody tr:hover td { background: rgba(0, 0, 0, 0.1); border-bottom: 1px solid var
 .detail-row { display: none; }
 .detail-row.show { display: table-row; }
 .detail-cell { background: rgba(0, 0, 0, 0.05) !important; padding: 15px !important; border: 1px dashed var(--glass-border); }
-.ans-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
-.ans-chip { padding: 4px 8px; border-radius: 2px; background: rgba(0,0,0,0.5); border: 1px solid transparent; font-size: 11px; }
-.ans-chip.ok { border-color: rgba(16, 185, 129, 0.4); color: var(--success); }
-.ans-chip.ng { border-color: rgba(239, 68, 68, 0.4); color: var(--danger); }
-.ans-chip.bl { border-color: rgba(245, 158, 11, 0.4); color: var(--warning); }
+
+/* YENI: 7 sütunlu cevap grid'i (formun fiziksel yapısı gibi) */
+.answer-grid-7col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+}
+.ans-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.ans-chip {
+  padding: 5px 8px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid transparent;
+  font-size: 11px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ans-chip.ok { border-color: rgba(16, 185, 129, 0.4); color: var(--success); background: rgba(16,185,129,0.08); }
+.ans-chip.ng { border-color: rgba(239, 68, 68, 0.4); color: var(--danger); background: rgba(239,68,68,0.08); }
+.ans-chip.bl { border-color: rgba(245, 158, 11, 0.4); color: var(--warning); background: rgba(245,158,11,0.08); }
+
+/* YENI: Editable (manuel düzeltme modu) */
+.ans-chip.editable {
+  cursor: pointer;
+  border-style: dashed;
+  box-shadow: 0 0 5px rgba(255, 0, 234, 0.3);
+}
+.ans-chip.editable:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px var(--secondary);
+  z-index: 10;
+  position: relative;
+}
 
 .footer { text-align: center; padding: 30px; margin-top: 40px; color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); position: relative; z-index: 1;}
 .footer span { color: var(--primary); font-weight: 700; text-shadow: 0 0 10px rgba(0,0,0,0.1); letter-spacing: 1px;}
@@ -208,4 +252,11 @@ tbody tr:hover td { background: rgba(0, 0, 0, 0.1); border-bottom: 1px solid var
   .tab { flex: 1; text-align: center; padding: 10px; font-size: 12px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .img-modal-content img { max-height: 70vh; }
+  /* Cevap grid'i mobilde 4 sütun */
+  .ans-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .ans-row { grid-template-columns: repeat(3, 1fr); }
+  .ans-chip { font-size: 10px; padding: 4px 6px; }
 }
