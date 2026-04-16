@@ -1,7 +1,9 @@
-
+"""
+main.py - Flask uygulamasi (toplu islem + PDF destekli)
+"""
 from flask import Flask, request, jsonify, render_template, send_file
 import config as cfg
-from omr_engine import process_single, compare_answers
+from omr_engine import process_single, process_file, compare_answers
 from export import create_batch_excel, get_export_filename
 
 app = Flask(__name__)
@@ -16,7 +18,7 @@ def index():
 
 @app.route("/analyze_key", methods=["POST"])
 def analyze_key():
-   
+    """Cevap anahtari formunu oku. JPG/PNG/PDF destekler (PDF ise ilk sayfa)."""
     f = request.files.get("file")
     if not f:
         return jsonify({"error": "Dosya yuklenmedi"}), 400
@@ -24,6 +26,7 @@ def analyze_key():
     nc = int(request.form.get("num_choices", cfg.DEFAULT_NUM_CHOICES))
     rpc = int(request.form.get("rows_per_col", cfg.DEFAULT_ROWS_PER_COLUMN))
     try:
+        # process_single PDF'in ilk sayfasini alir, JPG/PNG'de de calisir
         result = process_single(f.read(), nq, nc, rpc)
         if "error" in result and "answers" not in result:
             return jsonify({"error": result["error"]}), 400
@@ -35,7 +38,11 @@ def analyze_key():
 
 @app.route("/analyze_batch", methods=["POST"])
 def analyze_batch():
-   
+    """
+    Toplu ogrenci formlarini isle.
+    - Her yuklenen JPG/PNG tek bir form
+    - Her yuklenen PDF birden cok form icerebilir (her sayfa 1 ogrenci)
+    """
     files = request.files.getlist("files")
     if not files:
         return jsonify({"error": "Dosya yuklenmedi"}), 400
@@ -48,24 +55,44 @@ def analyze_batch():
 
     results = []
     for f in files:
+        fname = f.filename
         try:
-            r = process_single(f.read(), nq, nc, rpc)
-            if "error" in r and "answers" not in r:
-                r = {"student_info": r.get("student_info", {"name": f.filename, "number": ""}),
-                     "answers": [], "total_questions": nq, "filled": 0, "blank": nq, "error": r["error"]}
-            if answer_key and r.get("answers"):
-                r["comparison"] = compare_answers(r, answer_key)
-            r["filename"] = f.filename
-            results.append(r)
+            # process_file her zaman liste doner (PDF coklu sayfa, JPG tek)
+            per_page_results = process_file(f.read(), nq, nc, rpc)
+            is_pdf = len(per_page_results) > 1 or (fname.lower().endswith(".pdf"))
+
+            for idx, r in enumerate(per_page_results):
+                # Dosya adini ve sayfa numarasini ekle
+                if is_pdf:
+                    page_label = f"{fname} (sayfa {r.get('page', idx+1)})"
+                else:
+                    page_label = fname
+
+                # Hata durumunda bos sonuc yapisi
+                if "error" in r and "answers" not in r:
+                    r = {
+                        "student_info": r.get("student_info", {"name": page_label, "number": ""}),
+                        "answers": [], "total_questions": nq,
+                        "filled": 0, "blank": nq,
+                        "error": r["error"],
+                    }
+
+                # Cevap anahtariyla karsilastir
+                if answer_key and r.get("answers"):
+                    r["comparison"] = compare_answers(r, answer_key)
+
+                r["filename"] = page_label
+                results.append(r)
+
         except Exception as e:
             results.append({
-                "filename": f.filename,
-                "student_info": {"name": f.filename, "number": ""},
+                "filename": fname,
+                "student_info": {"name": fname, "number": ""},
                 "answers": [], "total_questions": nq,
-                "error": str(e)
+                "error": str(e),
             })
 
- 
+    # Sinif istatistikleri
     scores = [r["comparison"]["score"] for r in results if "comparison" in r]
     stats = {}
     if scores:
@@ -93,9 +120,12 @@ def export_excel():
         if not results:
             return jsonify({"error": "Sonuc yok"}), 400
         buf = create_batch_excel(results, ak)
-        return send_file(buf,
+        return send_file(
+            buf,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            as_attachment=True, download_name=get_export_filename())
+            as_attachment=True,
+            download_name=get_export_filename(),
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -105,7 +135,8 @@ if __name__ == "__main__":
     print("=" * 55)
     print("  OMR Scanner - Toplu Optik Form Okuyucu")
     print("=" * 55)
-    print("  * Toplu ogrenci kagidi isleme")
+    print("  * Toplu ogrenci kagidi isleme (JPG/PNG/PDF)")
+    print("  * Cok sayfali PDF = her sayfa ayri ogrenci")
     print("  * Ad-Soyad & Ogrenci No okuma")
     print("  * Cevap anahtari ile karsilastirma")
     print("  * Excel rapor (ozet + detay + istatistik)")
