@@ -1,6 +1,3 @@
-"""
-config.py - Yapilandirma (v2 - otomatik kalibrasyon)
-"""
 import os
 from pathlib import Path
 
