@@ -1,16 +1,3 @@
-"""
-omr_engine.py - Otomatik Kalibrasyonlu OMR Motoru (v4)
-============================================================
-Duzeltmeler:
-- Y grid offset hatasi giderildi (ilk satir artik dogru)
-- Fazla tespit edilen satirlar trim'leniyor (31 -> 30)
-- Ad-soyad bolgesi daraltildi (spiral/baslik gurultusu haric)
-- Numara bolgesi 10 sutuna ekstrapole edilir
-- Dinamik kontrast (golge/matbaa izi reddi)
-- Coklu isaret tespiti (cift sik)
-- ISTATISTIKSEL isaret tespiti (z-score tabanli)
-- PDF destegi (cok sayfali PDF'leri otomatik ayiklar)
-"""
 import cv2
 import numpy as np
 import base64
@@ -312,6 +299,12 @@ def extend_to_expected_count(values, expected_count):
 # ============================================================
 
 def read_answers_section(gray, num_questions, num_choices, rows_per_col):
+    """
+    Cevap bolgesini oku.
+    Donus: (answers, error)
+      - answers: her soru icin dict{'question', 'answer', 'coords'}
+      - coords: [(x, y, r, is_marked), ...] her sik icin piksel koordinati
+    """
     circles = cv2.HoughCircles(
         gray, cv2.HOUGH_GRADIENT, dp=cfg.HOUGH_DP,
         minDist=cfg.HOUGH_MIN_DIST, param1=cfg.HOUGH_PARAM1, param2=cfg.HOUGH_PARAM2,
@@ -341,12 +334,12 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
         row_idx = q % rows_per_col
 
         if col_idx >= len(groups):
-            answers.append({"question": q + 1, "answer": "BLANK"})
+            answers.append({"question": q + 1, "answer": "BLANK", "coords": []})
             continue
 
         group = groups[col_idx]
         if len(group) < num_choices:
-            answers.append({"question": q + 1, "answer": "BLANK"})
+            answers.append({"question": q + 1, "answer": "BLANK", "coords": []})
             continue
 
         cy = y_grid[row_idx] if row_idx < len(y_grid) else y_rows[-1]
@@ -367,23 +360,36 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
         z_distance = abs_diff / max(others_std, 1.0)
 
         marked = []
-        # Istatistiksel isaretleme kriteri
+        marked_indices = set()
         if darkest_val < cfg.MARK_MAX_DARKEST \
            and abs_diff > cfg.MARK_MIN_DIFF \
            and z_distance > cfg.MARK_Z_MIN:
             if darkest_ci < len(cfg.CHOICE_LABELS):
                 marked.append(cfg.CHOICE_LABELS[darkest_ci])
-            # Cift isaret tespiti: ikinci en koyu, ilkinden cok az farkliysa
+                marked_indices.add(darkest_ci)
             if len(sorted_m) > 1:
                 second_ci, second_val = sorted_m[1]
                 if (second_val - darkest_val) < cfg.DOUBLE_MARK_TOLERANCE \
                    and second_val < cfg.MARK_MAX_DARKEST:
                     if second_ci < len(cfg.CHOICE_LABELS):
                         marked.append(cfg.CHOICE_LABELS[second_ci])
+                        marked_indices.add(second_ci)
+
+        # Her sikkin koordinatini kaydet
+        coords = []
+        for ci, cx in enumerate(group[:num_choices]):
+            coords.append({
+                "x": int(cx),
+                "y": int(cy),
+                "r": int(median_radius),
+                "choice": cfg.CHOICE_LABELS[ci] if ci < len(cfg.CHOICE_LABELS) else "?",
+                "marked": ci in marked_indices,
+            })
 
         answers.append({
             "question": q + 1,
             "answer": ",".join(sorted(marked)) if marked else "BLANK",
+            "coords": coords,
         })
 
     return answers, None
@@ -559,8 +565,104 @@ def detect_num_questions_from_structure(gray, num_choices, rows_per_col, fallbac
     return len(valid_groups) * rows_per_col
 
 
-def _process_image(img, nq, nc, rpc):
-    """Tek bir OpenCV goruntuyu isle (PDF'ten gelmis olabilir ya da direkt JPG)."""
+def create_overlay_image(img, bar_y, answers, answer_key=None):
+    """
+    Orijinal goruntu uzerine isaretli baloncuklari renkli dairelerle cizer.
+    - Dogru isaret: YESIL daire
+    - Yanlis isaret: KIRMIZI daire
+    - Bos (cevap anahtarinda cevap varsa): SARI X isareti (kacirildi)
+    - Cevap anahtari yoksa: tum isaretler MAVI
+    """
+    overlay = img.copy()
+
+    for ans in answers:
+        q = ans.get("question", 0)
+        coords = ans.get("coords", [])
+        given = ans.get("answer", "BLANK")
+        expected = None
+        if answer_key and q - 1 < len(answer_key):
+            expected = answer_key[q - 1].strip().upper()
+
+        for coord in coords:
+            cx = coord["x"]
+            cy = coord["y"] + bar_y  # ROI koordinati absolute'a cevir
+            r = coord["r"] + 2  # biraz daha kalin gorunsun
+            ch = coord["choice"]
+            is_marked = coord["marked"]
+
+            if not is_marked:
+                continue
+
+            if answer_key is None:
+                # Anahtar yoksa tum isaretler mavi
+                color = (255, 120, 0)  # BGR: turuncu
+            elif expected and ch == expected:
+                color = (0, 200, 0)  # YESIL (dogru)
+            else:
+                color = (0, 0, 230)  # KIRMIZI (yanlis)
+
+            cv2.circle(overlay, (cx, cy), r, color, 3)
+
+        # Ogrenci bos birakmis ama anahtar dolu -> sari X
+        if given == "BLANK" and answer_key and expected and expected != "BLANK":
+            # Formda beklenen sikkin konumunu bul
+            for coord in coords:
+                if coord["choice"] == expected:
+                    cx = coord["x"]
+                    cy = coord["y"] + bar_y
+                    r = coord["r"]
+                    # Sari X cizgileri
+                    color = (0, 200, 255)
+                    cv2.line(overlay, (cx-r, cy-r), (cx+r, cy+r), color, 2)
+                    cv2.line(overlay, (cx+r, cy-r), (cx-r, cy+r), color, 2)
+                    break
+
+    # Yari-saydam karisim (orijinal + overlay)
+    result = cv2.addWeighted(img, 0.7, overlay, 0.3, 0)
+    # Ama daireler iyi gorunsun diye tekrar cizelim
+    for ans in answers:
+        coords = ans.get("coords", [])
+        given = ans.get("answer", "BLANK")
+        q = ans.get("question", 0)
+        expected = None
+        if answer_key and q - 1 < len(answer_key):
+            expected = answer_key[q - 1].strip().upper()
+
+        for coord in coords:
+            if not coord["marked"]:
+                continue
+            cx = coord["x"]
+            cy = coord["y"] + bar_y
+            r = coord["r"] + 2
+            ch = coord["choice"]
+            if answer_key is None:
+                color = (255, 120, 0)
+            elif expected and ch == expected:
+                color = (0, 200, 0)
+            else:
+                color = (0, 0, 230)
+            cv2.circle(result, (cx, cy), r, color, 3)
+
+    return result
+
+
+def image_to_base64_jpg(img, quality=80, max_dim=1500):
+    """Goruntuyu JPG olarak base64 encode et (frontend'e gondermek icin)."""
+    h, w = img.shape[:2]
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        new_w, new_h = int(w * scale), int(h * scale)
+        img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+    _, buf = cv2.imencode(".jpg", img, encode_params)
+    return base64.b64encode(buf).decode("utf-8")
+
+
+def _process_image(img, nq, nc, rpc, answer_key=None, make_overlay=True):
+    """Tek bir OpenCV goruntuyu isle.
+    answer_key: Opsiyonel, overlay'i renklendirmek icin kullanilir.
+    make_overlay: True ise isaretli baloncuklari gosteren debug image uretir.
+    """
     img, _ = resize_if_needed(img)
     bar_y = detect_answer_bar_y(img)
 
@@ -586,7 +688,7 @@ def _process_image(img, nq, nc, rpc):
     blank = sum(1 for a in answers if a["answer"] == "BLANK")
     filled = len(answers) - blank
 
-    return {
+    result = {
         "total_questions": len(answers),
         "answers": answers,
         "student_info": student_info,
@@ -594,12 +696,29 @@ def _process_image(img, nq, nc, rpc):
         "blank": blank,
     }
 
+    # Overlay debug image (opsiyonel, isaretlemeleri renkli daire ile gosterir)
+    if make_overlay:
+        try:
+            overlay_img = create_overlay_image(img, bar_y, answers, answer_key)
+            result["overlay_b64"] = image_to_base64_jpg(overlay_img)
+        except Exception:
+            pass  # overlay olusturma hata verirse ana sonucu etkilemesin
 
-def process_single(image_bytes, num_questions=None, num_choices=None, rows_per_col=None):
+    # Koordinatlari JSON'dan cikaralim (frontend'e gitmesin, buyuk paket olur)
+    for a in result["answers"]:
+        a.pop("coords", None)
+
+    return result
+
+
+def process_single(image_bytes, num_questions=None, num_choices=None, rows_per_col=None,
+                   answer_key=None, make_overlay=True):
     """
     Tek form isle. Girdi: JPG/PNG/PDF byte dizisi.
     - Normal resim: tek sonuc doner
     - PDF: YALNIZCA ilk sayfayi isler, diger sayfalar icin process_file kullanin
+    answer_key: Opsiyonel, overlay'i renkli yapmak icin.
+    make_overlay: Debug goruntusu uretilsin mi (default: evet).
     """
     nq = num_questions or cfg.DEFAULT_NUM_QUESTIONS
     nc = num_choices or cfg.DEFAULT_NUM_CHOICES
@@ -613,10 +732,12 @@ def process_single(image_bytes, num_questions=None, num_choices=None, rows_per_c
     if not images:
         return {"error": "Goruntu okunamadi (desteklenmeyen format veya bozuk dosya)"}
 
-    return _process_image(images[0], nq, nc, rpc)
+    return _process_image(images[0], nq, nc, rpc,
+                          answer_key=answer_key, make_overlay=make_overlay)
 
 
-def process_file(file_bytes, num_questions=None, num_choices=None, rows_per_col=None):
+def process_file(file_bytes, num_questions=None, num_choices=None, rows_per_col=None,
+                 answer_key=None, make_overlay=True):
     """
     Cok sayfali dosyayi isle (PDF icin ana kullanim).
     Her sayfa ayri bir form olarak islenir.
@@ -638,7 +759,8 @@ def process_file(file_bytes, num_questions=None, num_choices=None, rows_per_col=
     results = []
     for i, img in enumerate(images):
         try:
-            r = _process_image(img, nq, nc, rpc)
+            r = _process_image(img, nq, nc, rpc,
+                               answer_key=answer_key, make_overlay=make_overlay)
             r["page"] = i + 1
             results.append(r)
         except Exception as e:
