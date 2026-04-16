@@ -1,6 +1,3 @@
-"""
-export.py - Toplu Excel rapor olusturma
-"""
 import io, datetime
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -8,13 +5,7 @@ from openpyxl.chart import BarChart, Reference
 
 
 def create_batch_excel(batch_results, answer_key=None):
-    """
-    Toplu sonuclardan detayli Excel raporu olustur.
-    Sayfalar:
-    1. Ozet - ogrenci listesi + puanlar
-    2. Detay - her ogrencinin tum cevaplari
-    3. Istatistik - sinif istatistikleri + soru analizi
-    """
+
     wb = openpyxl.Workbook()
 
     hf = Font(bold=True, color="FFFFFF", size=11)
@@ -26,7 +17,7 @@ def create_batch_excel(batch_results, answer_key=None):
     ct = Alignment(horizontal="center", vertical="center")
     lt = Alignment(horizontal="left", vertical="center")
 
-    # ══════════════ SAYFA 1: OZET ══════════════
+  
     ws1 = wb.active
     ws1.title = "Ozet"
 
@@ -76,7 +67,7 @@ def create_batch_excel(batch_results, answer_key=None):
     ws1.column_dimensions["G"].width = 10
     ws1.column_dimensions["H"].width = 12
 
-    # ══════════════ SAYFA 2: DETAY ══════════════
+
     ws2 = wb.create_sheet("Detay")
     total_q = batch_results[0].get("total_questions", 0) if batch_results else 0
 
@@ -89,7 +80,7 @@ def create_batch_excel(batch_results, answer_key=None):
         c = ws2.cell(row=1, column=col, value=h)
         c.font = hf; c.fill = hfill; c.alignment = ct; c.border = border
 
-    # Cevap anahtari satiri
+
     if answer_key:
         row = 2
         ws2.cell(row=row, column=1, value="").alignment = ct
@@ -134,10 +125,10 @@ def create_batch_excel(batch_results, answer_key=None):
     ws2.column_dimensions["B"].width = 24
     ws2.column_dimensions["C"].width = 16
 
-    # ══════════════ SAYFA 3: ISTATISTIK ══════════════
+ 
     ws3 = wb.create_sheet("Istatistik")
 
-    # Sinif istatistikleri
+   
     ws3.cell(row=1, column=1, value="SINIF ISTATISTIKLERI").font = Font(bold=True, size=14)
 
     if scores:
@@ -159,7 +150,7 @@ def create_batch_excel(batch_results, answer_key=None):
             ws3.cell(row=r, column=2, value=val).alignment = ct
             ws3.cell(row=r, column=2).border = border
 
-    # Soru bazli analiz
+  
     if answer_key and batch_results:
         sr = 14
         ws3.cell(row=sr, column=1, value="SORU BAZLI ANALIZ").font = Font(bold=True, size=14)
@@ -171,7 +162,7 @@ def create_batch_excel(batch_results, answer_key=None):
 
         for qi in range(total_q):
             row = sr + 2 + qi
-            # Her sorunun cevap dagilimi
+           
             given_answers = []
             correct_count = 0
             blank_count = 0
@@ -191,7 +182,7 @@ def create_batch_excel(batch_results, answer_key=None):
             correct_pct = round(correct_count / n * 100, 1) if n > 0 else 0
             blank_pct = round(blank_count / n * 100, 1) if n > 0 else 0
 
-            # En cok verilen cevap
+           
             if given_answers:
                 from collections import Counter
                 most_common = Counter(given_answers).most_common(1)[0][0]
