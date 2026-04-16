@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OMR Scanner - Toplu Optik Form Okuyucu</title>
+<title>OMR Scanner - Akıllı Optik Okuyucu</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="/static/style.css">
 
 </head>
@@ -16,32 +17,35 @@
 
 <div class="hdr">
   <div class="logo">
-    <span class="logo-icon">📊</span>
+    <span class="logo-icon" style="color: #000; text-shadow: none;">📊</span>
   </div>
   <div class="hdr-title">
     <h1>OMR Scanner</h1>
-    <p>Akıllı Optik Form Okuyucu</p>
+    <p>Akıllı Optik Form Okuyucu Motoru</p>
   </div>
 
-  <div class="steps">
+  <div style="margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap;">
+    <button id="btnTools" class="glow-btn btn-sm" style="border-color: var(--secondary); color: var(--secondary);">
+      <span style="font-size: 16px;">🛠️</span> Araçlar
+    </button>
+    <button id="btnSettings" class="glow-btn btn-sm" style="border-color: var(--warning); color: var(--warning);">
+      <span style="font-size: 16px;">⚙️</span> Ayarlar
+    </button>
+    <button id="btnOmrInfo" class="glow-btn btn-sm" style="margin-right: 20px;">
+      <span style="font-size: 16px;">💡</span> OMR Nedir?
+    </button>
+  </div>
+
+  <div class="steps" style="margin-left: 0;">
     <div class="step-container">
-      <span class="step active" id="s1">
-        <span class="step-num">1</span> Ayarlar
-      </span>
+      <span class="step active" id="s1"><span class="step-num">1</span> Anahtar</span>
       <span class="step-line"></span>
-      <span class="step" id="s2">
-        <span class="step-num">2</span> Anahtar
-      </span>
-      <span class="step-line"></span>
-      <span class="step" id="s3">
-        <span class="step-num">3</span> Kâğıtlar
-      </span>
+      <span class="step" id="s2"><span class="step-num">2</span> Kâğıtlar</span>
     </div>
   </div>
 </div>
 
 <div class="wrap">
-
   <div class="badge-container">
     <div class="ai-badge">
       <span class="pulse-dot"></span> ⚡ Yapay Zeka Destekli Analiz Motoru
@@ -50,60 +54,20 @@
 
   <div id="step1" class="glass-panel">
     <div class="step-header">
-      <h2 class="sh">🛠️ Form Ayarları</h2>
-      <p class="sh-sub">Optik formun yapısal özelliklerini belirleyin.</p>
-    </div>
-
-    <div class="row3">
-      <div class="card">
-        <label>Soru Sayısı</label>
-        <div class="input-wrapper">
-          <input type="number" id="numQ" value="100">
-        </div>
-      </div>
-
-      <div class="card">
-        <label>Şık Sayısı</label>
-        <div class="input-wrapper">
-          <select id="numC">
-            <option value="4">4 Şık (A-D)</option>
-            <option value="5" selected>5 Şık (A-E)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <label>Sütun Uzunluğu</label>
-        <div class="input-wrapper">
-          <input type="number" id="rowsPerCol" value="30">
-        </div>
-      </div>
-    </div>
-
-    <div class="btn-right">
-      <button class="btn-primary glow-btn" onclick="goStep(2)">Cevap Anahtarına Geç <span>→</span></button>
-    </div>
-  </div>
-
-  <div id="step2" class="hidden glass-panel">
-    <div class="step-header">
       <h2 class="sh">🔑 Cevap Anahtarı</h2>
       <p class="sh-sub" id="keyInfo">Değerlendirme için referans anahtarı belirleyin.</p>
     </div>
-
     <div class="tabs">
       <button class="tab active" onclick="switchTab('manual')">Elle Gir</button>
       <button class="tab" onclick="switchTab('scan')">Formdan Oku</button>
     </div>
-
     <div id="tabManual">
       <div class="card no-hover">
-        <label style="margin-bottom: 10px; display:block; color:var(--text-muted);">Örn: A, B, C, D, E</label>
+        <label style="margin-bottom: 10px; display:block;">Örn: A, B, C, D, E</label>
         <textarea id="manualKey" placeholder="Cevapları virgülle ayırarak giriniz..."></textarea>
-        <div id="keyCount" class="info-text" style="margin-top:10px; color:var(--primary); font-size:13px; font-weight:600;">0 cevap girildi</div>
+        <div id="keyCount" class="info-text" style="margin-top:10px; color:var(--primary); font-size:13px; font-weight:600; font-family: var(--font-mono);">0 cevap girildi</div>
       </div>
     </div>
-
     <div id="tabScan" class="hidden">
       <div class="upload-zone" id="keyUpload" onclick="document.getElementById('keyFile').click()">
         <div class="laser"></div>
@@ -112,63 +76,207 @@
         <p class="uz-sub">veya seçmek için tıklayın</p>
       </div>
       <input type="file" id="keyFile" hidden>
-      <div id="keyStatus" class="hidden status-box" style="margin-top: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;"></div>
+      <div id="keyStatus" class="hidden status-box" style="margin-top: 15px; background: rgba(0,240,255,0.05); padding: 15px; border-radius: 4px; border: 1px solid rgba(0,240,255,0.2);"></div>
     </div>
-
-    <div class="btn-row">
-      <button class="btn-secondary" onclick="goStep(1)">← Geri</button>
-      <button class="btn-primary glow-btn" onclick="goStep(3)">Kağıt Yüklemeye Geç <span>→</span></button>
+    <div class="btn-right">
+      <button class="btn-primary glow-btn" onclick="goStep(2)">Kağıt Yüklemeye Geç <span>→</span></button>
     </div>
   </div>
 
-  <div id="step3" class="hidden glass-panel">
+  <div id="step2" class="hidden glass-panel">
     <div class="step-header">
       <h2 class="sh">📂 Öğrenci Kâğıtları</h2>
       <p class="sh-sub">Analiz edilecek tüm optik formları topluca yükleyin.</p>
     </div>
-
     <div class="upload-zone massive-zone" id="batchUpload" onclick="document.getElementById('batchFiles').click()">
       <div class="laser"></div>
       <div class="uz-icon floating">📑</div>
       <p class="uz-text">Tüm öğrenci kağıtlarını seçin veya sürükleyin</p>
       <p class="uz-sub">Birden fazla dosya seçebilirsiniz</p>
     </div>
-
     <input type="file" id="batchFiles" multiple hidden>
-
     <div id="fileList" class="hidden" style="margin-top: 20px;"></div>
-
     <div class="btn-center">
       <button id="btnBatch" class="btn-primary btn-large glow-btn hidden" onclick="startBatch()">🚀 Toplu Analiz Başlat</button>
     </div>
   </div>
 
   <div id="resultsSection" class="hidden">
-    <div class="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px;">
-      <h2 style="font-size: 24px; font-weight: 600;">📈 Analiz Sonuçları</h2>
-      <div class="export-btns" style="display: flex; gap: 10px;">
-         <button class="btn-warning glow-btn" onclick="resetAll()">🔄 Yeni Tarama</button>
-         <button class="btn-secondary btn-sm" onclick="xJSON()">JSON İndir</button>
-         <button class="btn-success btn-sm glow-btn" onclick="xXLS()">Excel Raporu (XLSX)</button>
+    <div class="results-header">
+      <h2 class="results-title">📈 Analiz Sonuçları</h2>
+      <div class="export-btns">
+         <button class="btn-warning glow-btn btn-sm" onclick="resetAll()">🔄 Yeni</button>
+         <button class="btn-secondary btn-sm" onclick="xJSON()">JSON</button>
+         <button class="btn-success btn-sm glow-btn" onclick="xXLS()">Excel</button>
       </div>
     </div>
     
     <div id="statsArea"></div>
+
+    <div class="dashboard-grid">
+      <div class="glass-panel" style="margin-bottom: 0;">
+        <h3 class="sh" style="font-size: 16px; margin-bottom: 15px; color: var(--warning);">🏆 Haftanın MVP'leri (Top 3)</h3>
+        <div id="leaderboardArea"></div>
+      </div>
+      <div class="glass-panel" style="margin-bottom: 0; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 100%; max-width: 300px; position: relative;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
     
-    <div class="glass-panel" style="margin-top:20px; padding:0; overflow:hidden;">
+    <div class="glass-panel results-table-container" style="margin-top: 25px;">
       <div id="resultsTable"></div>
     </div>
   </div>
 
-  <div id="errBox" class="hidden error-toast" style="position: fixed; bottom: 20px; right: 20px; background: #7f1d1d; color: #fca5a5; padding: 15px 25px; border-radius: 10px; border: 1px solid #b91c1c; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 9999;">
+  <div id="errBox" class="hidden error-toast" style="background: rgba(255,0,60,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 15px; border-radius: 4px; margin-top: 20px; text-align: center; font-family: var(--font-mono);">
     <span id="errTxt"></span>
-    <button style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;" onclick="this.parentElement.classList.add('hidden')">×</button>
+    <button class="close-err" onclick="this.parentElement.classList.add('hidden')" style="background: transparent; border: none; color: var(--danger); font-size: 20px; float: right; cursor: pointer;">×</button>
   </div>
-
 </div>
 
 <div class="footer">
-  <p>✨ <span>Ömer Faruk Yıldız</span> tarafından geliştirildi 💻</p>
+  <p>✨ <span>Ömer Faruk Yıldız</span> | Software Developer Assistant Specialist tarafından geliştirildi 💻</p>
+  <div class="social-links">
+    <a href="https://www.instagram.com/omerfarukyldz_/?locale=en-us" target="_blank" class="social-btn instagram" title="Instagram">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+      </svg>
+    </a>
+    <a href="https://www.linkedin.com/in/omerfaruk-yildiz" target="_blank" class="social-btn linkedin" title="LinkedIn">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+        <rect x="2" y="9" width="4" height="12"></rect>
+        <circle cx="4" cy="4" r="2"></circle>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<div id="welcomeModal" class="modal-overlay hidden" style="z-index: 9999; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
+  <div class="modal-content glass-panel" style="max-width: 500px; text-align: center; border: 1px solid var(--primary); box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);">
+    <div class="sh" style="color: var(--primary); text-shadow: 0 0 10px var(--primary); margin-bottom: 15px;">
+      <span style="font-size: 36px; display: inline-block; animation: float 3s ease-in-out infinite;">🚀</span><br>
+      Sisteme Hoş Geldiniz!
+    </div>
+    <p style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px; line-height: 1.7; margin-bottom: 25px;">
+      Gelişmiş OMR (Optik İşaret Tanıma) Okuyucusuna hoş geldiniz. <strong>Umarım sınavınız çok güzel geçmiştir!</strong> <br><br>
+      Formlarınızı saniyeler içinde okutmak, sınıfın genel durumunu detaylı analizlerle görmek ve sonuçları anında <span style="color: var(--success); font-weight: 600;">Excel veya JSON</span> olarak dışa aktarmak için sistem tamamen hazır.
+    </p>
+    <div style="margin-bottom: 25px;">
+      <div style="width: 40px; height: 1px; background: rgba(255,255,255,0.1); margin: 0 auto 10px auto;"></div>
+      <p style="color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;">Geliştirici</p>
+      <p style="color: var(--text-muted); font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.5px;">
+        Ömer Faruk Yıldız
+      </p>
+    </div>
+    <button id="closeWelcomeBtn" class="btn-primary glow-btn" style="width: 100%; font-size: 15px; padding: 12px;">Sistemi Başlat ⚡</button>
+  </div>
+</div>
+
+<div id="toolsModal" class="modal-overlay hidden">
+  <div class="modal-content glass-panel" style="max-width: 400px; padding: 20px;">
+    <button class="close-modal" id="closeToolsModal">×</button>
+    <div class="sh" style="color: var(--secondary); text-shadow: 0 0 10px var(--secondary); margin-bottom: 20px;">
+      <span style="font-size: 24px;">🛠️</span> Eğitim Araçları
+    </div>
+    <div class="tabs" style="width: 100%; margin-bottom: 15px;">
+      <button class="tab active" onclick="switchTool('calc')" id="tabBtnCalc" style="flex:1;">Hesap Makinesi</button>
+      <button class="tab" onclick="switchTool('grade')" id="tabBtnGrade" style="flex:1;">Harf Notu</button>
+    </div>
+    <div id="toolCalc">
+      <div class="calc-display" id="calcDisplay">0</div>
+      <div class="calc-grid">
+        <button class="calc-btn btn-secondary" onclick="calcAction('clear')">C</button>
+        <button class="calc-btn btn-secondary" onclick="calcAction('del')">DEL</button>
+        <button class="calc-btn btn-secondary" onclick="calcAction('%')">%</button>
+        <button class="calc-btn calc-op" onclick="calcAction('/')">÷</button>
+        <button class="calc-btn" onclick="calcAction('7')">7</button>
+        <button class="calc-btn" onclick="calcAction('8')">8</button>
+        <button class="calc-btn" onclick="calcAction('9')">9</button>
+        <button class="calc-btn calc-op" onclick="calcAction('*')">×</button>
+        <button class="calc-btn" onclick="calcAction('4')">4</button>
+        <button class="calc-btn" onclick="calcAction('5')">5</button>
+        <button class="calc-btn" onclick="calcAction('6')">6</button>
+        <button class="calc-btn calc-op" onclick="calcAction('-')">-</button>
+        <button class="calc-btn" onclick="calcAction('1')">1</button>
+        <button class="calc-btn" onclick="calcAction('2')">2</button>
+        <button class="calc-btn" onclick="calcAction('3')">3</button>
+        <button class="calc-btn calc-op" onclick="calcAction('+')">+</button>
+        <button class="calc-btn" onclick="calcAction('0')" style="grid-column: span 2;">0</button>
+        <button class="calc-btn" onclick="calcAction('.')">.</button>
+        <button class="calc-btn calc-eq" onclick="calcAction('=')">=</button>
+      </div>
+    </div>
+    <div id="toolGrade" class="hidden">
+      <div style="text-align: center; margin-top: 20px;">
+        <label style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Öğrenci Puanı (0-100)</label>
+        <input type="number" id="gradeInput" placeholder="Örn: 85" style="text-align:center; font-size: 24px; padding: 15px; border-color: var(--secondary); color: var(--secondary);">
+        <button class="btn-primary glow-btn" onclick="calculateGrade()" style="width: 100%; margin-top: 15px; font-size:16px;">Çevir</button>
+        <div id="gradeResult" style="margin-top: 25px; font-size: 48px; font-weight: 700; color: #fff; text-shadow: 0 0 20px var(--success); font-family: var(--font-mono);">-</div>
+        <div id="gradeDesc" style="color: var(--text-muted); font-size: 14px; margin-top: 5px;">Harf Karşılığı Bekleniyor</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal-content glass-panel" style="max-width: 450px;">
+    <button class="close-modal" id="closeSettingsModal">×</button>
+    <div class="sh" style="color: var(--primary); text-shadow: 0 0 10px var(--primary); margin-bottom: 20px;">
+      <span style="font-size: 24px;">⚙️</span> Sistem Ayarları
+    </div>
+    <div class="modal-body" style="color: var(--text-main); font-family: var(--font-mono); font-size: 14px;">
+      <label style="display:block; margin-bottom: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Arayüz Teması</label>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-secondary" onclick="setTheme('cyberpunk')" style="width:100%; justify-content: flex-start; padding-left: 20px;">🟣 Siberpunk (Gece)</button>
+        <button class="btn-secondary" onclick="setTheme('matrix')" style="width:100%; justify-content: flex-start; padding-left: 20px; color: #00ff41; border-color: #00ff41;">👁️‍🗨️ Matrix (Hacker)</button>
+        <button class="btn-secondary" onclick="setTheme('light')" style="width:100%; justify-content: flex-start; padding-left: 20px; color: #f59e0b; border-color: #f59e0b;">☀️ Gündüz Modu</button>
+      </div>
+      <div style="margin-top: 25px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+        <label style="display:block; margin-bottom: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Özel Vurgu Rengi</label>
+        <div style="display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--glass-border);">
+          <input type="color" id="primaryColorPicker" value="#00f0ff" title="Renk Seç">
+          <span style="font-size: 12px; color: var(--text-muted); flex: 1;">Favori ana rengini seç (Örn: Turuncu)</span>
+          <button class="btn-sm btn-secondary" onclick="resetColor()" style="padding: 6px 12px; font-size: 11px;">Sıfırla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="omrModal" class="modal-overlay hidden">
+  <div class="modal-content glass-panel" style="max-width: 750px; max-height: 85vh; overflow-y: auto;">
+    <button class="close-modal" id="closeOmrModal">×</button>
+    <div class="sh" style="color: var(--primary); text-shadow: 0 0 15px var(--primary); margin-bottom: 15px;">
+      <span style="font-size: 24px;">💡</span> OMR (Optik İşaret Tanıma) Nedir?
+    </div>
+    <div class="modal-body" style="color: var(--text-main); font-family: var(--font-mono); font-size: 13px; line-height: 1.7;">
+      <p style="margin-bottom: 15px;"><strong style="color: var(--secondary); font-size: 15px;">OMR (Optical Mark Recognition)</strong>, formlar, anketler veya sınav kâğıtları üzerindeki işaretli alanları (karalanmış baloncuklar vb.) insan gözüne ihtiyaç duymadan algılayarak dijital veriye dönüştüren teknolojidir.</p>
+      <p style="margin-bottom: 20px;">Geçmişte bu işlem donanıma bağımlı makineler ile yapılıyordu. Günümüzde ise bu sistem gibi <strong>Yeni Nesil OMR Motorları</strong>, standart görselleri <span style="color: var(--success); font-weight: bold;">Yapay Zeka ve Görüntü İşleme (OpenCV)</span> algoritmaları kullanarak analiz eder.</p>
+      <div style="background: rgba(0, 0, 0, 0.3); padding: 20px; border-left: 3px solid var(--primary); border-radius: 6px; margin-bottom: 15px; border: 1px solid var(--glass-border);">
+        <strong style="color: var(--primary); display: block; margin-bottom: 12px; font-size: 15px;">⚙️ Görüntü İşleme Motoru Nasıl Çalışır?</strong>
+        <ul style="list-style-type: none; padding-left: 0; display: flex; flex-direction: column; gap: 12px;">
+          <li><strong style="color: #fff;">1. Ön İşleme (Preprocessing):</strong> Form siyah-beyaz formata çevrilir ve gölgeler temizlenir.</li>
+          <li><strong style="color: #fff;">2. Köşe Tespiti (Perspective Transform):</strong> Form yamuk çekilmiş olsa bile köşeleri bulunup görsel düz bir dikdörtgen haline (Warp) sokulur.</li>
+          <li><strong style="color: #fff;">3. Hücre Çıkarımı:</strong> Şıkların (baloncukların) koordinatları matematiksel olarak bulunur.</li>
+          <li><strong style="color: #fff;">4. Piksel Yoğunluk (Thresholding):</strong> Baloncuğun içindeki siyah piksel yoğunluğu ölçülür ve eşiği geçenler "dolu" sayılır.</li>
+          <li><strong style="color: #fff;">5. Puanlama:</strong> Çıkan sonuç Cevap Anahtarı ile karşılaştırılıp doğru/yanlış hesaplanır.</li>
+        </ul>
+      </div>
+      <p style="color: var(--text-muted); font-size: 12px; font-style: italic; text-align: center;">* Siberpunk Motoru, yüksek performanslı algoritmaları sayesinde saniyeler içinde analiz yapar.</p>
+    </div>
+  </div>
+</div>
+
+<div id="imageModal" class="modal-overlay hidden">
+  <div class="modal-content img-modal-content">
+    <button class="close-modal" id="closeImageModal" style="color: #fff; background: rgba(0,0,0,0.5); border-radius: 50%; width: 40px; height: 40px; right: -15px; top: -15px; border: 1px solid var(--primary);">×</button>
+    <img id="modalImage" src="" alt="Öğrenci Kağıdı">
+  </div>
 </div>
 
 <script src="/static/app.js"></script>
