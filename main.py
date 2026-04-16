@@ -1,6 +1,4 @@
-"""
-main.py - Flask uygulamasi (toplu islem destekli)
-"""
+
 from flask import Flask, request, jsonify, render_template, send_file
 import config as cfg
 from omr_engine import process_single, compare_answers
@@ -18,7 +16,7 @@ def index():
 
 @app.route("/analyze_key", methods=["POST"])
 def analyze_key():
-    """Cevap anahtari formunu oku."""
+   
     f = request.files.get("file")
     if not f:
         return jsonify({"error": "Dosya yuklenmedi"}), 400
@@ -37,7 +35,7 @@ def analyze_key():
 
 @app.route("/analyze_batch", methods=["POST"])
 def analyze_batch():
-    """Toplu ogrenci formlarini isle."""
+   
     files = request.files.getlist("files")
     if not files:
         return jsonify({"error": "Dosya yuklenmedi"}), 400
@@ -67,7 +65,7 @@ def analyze_batch():
                 "error": str(e)
             })
 
-    # Sinif istatistikleri
+ 
     scores = [r["comparison"]["score"] for r in results if "comparison" in r]
     stats = {}
     if scores:
