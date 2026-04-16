@@ -1,23 +1,8 @@
-"""
-omr_engine.py - Otomatik Kalibrasyonlu OMR Motoru (v3)
-============================================================
-Duzeltmeler:
-- Y grid offset hatasi giderildi (ilk satir artik dogru)
-- Fazla tespit edilen satirlar trim'leniyor (31 -> 30)
-- Ad-soyad bolgesi daraltildi (spiral/baslik gurultusu haric)
-- Numara bolgesi 10 sutuna ekstrapole edilir
-- Dinamik kontrast (golge/matbaa izi reddi)
-- Coklu isaret tespiti (cift sik)
-"""
 import cv2
 import numpy as np
 import base64
 import config as cfg
 
-
-# ============================================================
-# YARDIMCI FONKSIYONLAR
-# ============================================================
 
 def cluster_values(values, tolerance):
     if not values:
@@ -43,13 +28,13 @@ def measure_bubble(gray, cx, cy, radius):
     r = max(3, int(radius) - 3)
     h, w = gray.shape[:2]
     cx, cy = int(cx), int(cy)
-    # Tamamen disarida mi?
+   
     if cy + r < 0 or cy - r >= h or cx + r < 0 or cx - r >= w:
         return 255.0
     mask = np.zeros(gray.shape, dtype=np.uint8)
     cv2.circle(mask, (cx, cy), r, 255, -1)
-    # cv2.circle kendiligiinden goruntu sinirina klip yapar
-    total = int(mask.sum() / 255)  # daire icindeki piksel sayisi
+  
+    total = int(mask.sum() / 255)  
     if total < 1:
         return 255.0
     return float(cv2.mean(gray, mask=mask)[0])
@@ -72,7 +57,7 @@ def is_marked_dynamic(measurements, threshold_val=None, contrast_min=None):
     sorted_m = sorted(measurements, key=lambda x: x[1])
     darkest_idx, darkest_val = sorted_m[0]
 
-    # Diger baloncuklari referans olarak al
+   
     others = [m[1] for m in sorted_m[1:]]
     if not others:
         return None, None
@@ -89,9 +74,7 @@ def is_marked_dynamic(measurements, threshold_val=None, contrast_min=None):
     return None, None
 
 
-# ============================================================
-# OTOMATIK KALIBRASYON
-# ============================================================
+
 
 def detect_answer_bar_y(img):
     """Turuncu CEVAPLAR banti. Bar bitimi + 10px dondurur."""
@@ -122,12 +105,12 @@ def resize_if_needed(img, target_dim=None, max_dim=None):
     longest = max(h, w)
 
     if longest < target_dim:
-        # Kucukse buyut (WhatsApp telefon fotosu gibi)
+       
         scale = target_dim / longest
         new_w, new_h = int(w * scale), int(h * scale)
         return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_CUBIC), scale
     elif longest > max_dim:
-        # Cok buyukse kucult
+       
         scale = max_dim / longest
         new_w, new_h = int(w * scale), int(h * scale)
         return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA), scale
@@ -202,9 +185,7 @@ def extend_to_expected_count(values, expected_count):
     return result
 
 
-# ============================================================
-# CEVAPLARI OKUMA
-# ============================================================
+
 
 def read_answers_section(gray, num_questions, num_choices, rows_per_col):
     circles = cv2.HoughCircles(
@@ -254,7 +235,7 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
         sorted_m = sorted(measurements, key=lambda x: x[1])
         darkest_ci, darkest_val = sorted_m[0]
 
-        # Diger 4 sikki referans al
+       
         others = [m[1] for m in sorted_m[1:]]
         others_mean = float(np.mean(others))
         others_std = float(np.std(others))
@@ -262,13 +243,13 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
         z_distance = abs_diff / max(others_std, 1.0)
 
         marked = []
-        # Istatistiksel isaretleme kriteri
+       
         if darkest_val < cfg.MARK_MAX_DARKEST \
            and abs_diff > cfg.MARK_MIN_DIFF \
            and z_distance > cfg.MARK_Z_MIN:
             if darkest_ci < len(cfg.CHOICE_LABELS):
                 marked.append(cfg.CHOICE_LABELS[darkest_ci])
-            # Cift isaret tespiti: ikinci en koyu, ilkinden cok az farkliysa
+          
             if len(sorted_m) > 1:
                 second_ci, second_val = sorted_m[1]
                 if (second_val - darkest_val) < cfg.DOUBLE_MARK_TOLERANCE \
@@ -284,23 +265,17 @@ def read_answers_section(gray, num_questions, num_choices, rows_per_col):
     return answers, None
 
 
-# ============================================================
-# AD-SOYAD OKUMA
-# ============================================================
+
 
 def read_name_region(img, bar_y):
-    """
-    Ad-soyad matrisi. Akilli ROI: Y sinirini asagidan yukariya
-    ilerleterek tam 32 satiri yakalamaya calisir.
-    """
+    
     h, w = img.shape[:2]
     x_min = int(w * 0.40)
     x_max = int(w * 0.985)
     y_max = bar_y - 30
     num_letters = len(cfg.TURKISH_ALPHA) - 1  # 32
 
-    # Y_min icin birkac aday dene; en az 30 satir ve en cok 35 satir ver
-    # (gurultuye karsi tolerans)
+  
     candidates_y_min = [
         int(h * 0.085),
         int(h * 0.070),
@@ -328,12 +303,10 @@ def read_name_region(img, bar_y):
         y_rows_local = cluster_values(c[:, 1].tolist(), cfg.Y_CLUSTER_TOLERANCE)
         n_rows = len(y_rows_local)
 
-        # Ideal: 32-33 satir. Cok az: y_min'i yukari cekmek lazim.
-        # Cok fazla: mantikli bir sinirda dur (ust gurultu).
         if n_rows >= num_letters:
             best_result = (y_min, roi, gray, c)
             break
-        # En azindan eldekileri tut
+      
         if best_result is None:
             best_result = (y_min, roi, gray, c)
 
@@ -347,16 +320,14 @@ def read_name_region(img, bar_y):
     if len(x_cols) < 10 or len(y_rows) < 15:
         return ""
 
-    # Y izgarasi: 32 satir olacak sekilde trim/extend
+   
     y_grid = build_uniform_grid(y_rows, num_letters, trim_outliers=True)
 
     median_r = int(np.median(c[:, 2]))
 
-    # Sutun sayisi: form yazi alani 22 hucre. Fazla varsa baştan veya sondan kirp.
-    # Genelde formun sag tarafinda "DTS.836" yazisi / kenar gurultusu oluyor -> sondan kirp.
+ 
     if len(x_cols) > 22:
-        # Ilk ve son gruplarin yogunlugunu karsilastir; seyrek tarafi at.
-        # Basit sezgi: ortadakilerle esit aralikli olmayanlari trimle
+        
         x_cols = x_cols[:22]
 
     name_chars = []
@@ -424,19 +395,10 @@ def read_number_region(img, bar_y):
     return number
 
 
-# ============================================================
-# ANA AKIS
-# ============================================================
+
 
 def detect_num_questions_from_structure(gray, num_choices, rows_per_col, fallback=None):
-    """
-    Form yapisina bakarak gercek soru sayisini tespit et.
-    Daireleri bul, x-sutunlarini grupla, kac tam grup oldugunu say.
-    Her grup = 1 sutun = rows_per_col kadar soru.
-
-    Bu, kullanici yanlis soru sayisi gonderse bile (ornegin 100 yazarken
-    formda 200 soru varsa) dogru degeri bulmaya yarar.
-    """
+   
     circles = cv2.HoughCircles(
         gray, cv2.HOUGH_GRADIENT, dp=cfg.HOUGH_DP,
         minDist=cfg.HOUGH_MIN_DIST, param1=cfg.HOUGH_PARAM1, param2=cfg.HOUGH_PARAM2,
@@ -449,7 +411,7 @@ def detect_num_questions_from_structure(gray, num_choices, rows_per_col, fallbac
     groups = find_question_groups(x_cols, num_choices)
     if not groups:
         return fallback
-    # Her grup tam num_choices sutuna sahip olmali
+   
     valid_groups = [g for g in groups if len(g) >= num_choices]
     return len(valid_groups) * rows_per_col
 
@@ -476,16 +438,10 @@ def process_single(image_bytes, num_questions=None, num_choices=None, rows_per_c
     answers_region = img[bar_y:]
     gray_ans = cv2.cvtColor(answers_region, cv2.COLOR_BGR2GRAY)
 
-    # OTOMATIK SORU SAYISI TESPITI
-    # Kullanici 100 gonderse bile form yapisinda 200 soru varsa onu al.
-    # Form yapisi (7 sutun x 30 soru = 210 baloncuk satiri) tespit edilir.
-    # Ancak son sutun tam dolu olmayabilir (ornek: 181-200 = 20 soru).
-    # Bu yuzden tespit edilen degeri DEFAULT_NUM_QUESTIONS ile sinirliyoruz.
+ 
     detected_nq = detect_num_questions_from_structure(gray_ans, nc, rpc, fallback=nq)
     if detected_nq:
-        # Eger kullanicinin gonderdigi nq, default'tan kucukse
-        # (frontend bug'i gibi) ve tespit edilen sayi daha mantikliysa,
-        # default degeri kullan.
+     
         if nq < cfg.DEFAULT_NUM_QUESTIONS and detected_nq >= cfg.DEFAULT_NUM_QUESTIONS:
             nq = cfg.DEFAULT_NUM_QUESTIONS
 
