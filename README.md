@@ -1,6 +1,6 @@
 # 📊 OMR Scanner — Akıllı Optik Form Okuyucu
 
-https://omr-aw8f.onrender.com/
+https://omrscan.vercel.app/
 
 Yapay zeka ve görüntü işleme teknolojileriyle çalışan, tarayıcı tabanlı toplu optik form okuyucu uygulaması.
 
